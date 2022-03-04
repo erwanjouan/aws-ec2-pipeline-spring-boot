@@ -12,7 +12,7 @@ Parameters:
   BranchName:
     Type: String
     Default: main
-  ImageTag:
+  SubModuleSha1:
     Type: String
 
 Resources:
@@ -98,9 +98,9 @@ Resources:
           - Name: GIT_COMMIT_ID
             Type: PLAINTEXT
             Value: '#{GitVariables.CommitId}'
-          - Name: IMAGE_TAG
+          - Name: SUB_MODULE_SHA1
             Type: PLAINTEXT
-            Value: !Ref ImageTag
+            Value: !Ref SubModuleSha1
       Cache:
         Location: !Sub '${ArtifactOutputBucket}/cache'
         Type: S3
@@ -206,7 +206,7 @@ Resources:
                 Version: 1
               Configuration:
                 BucketName: !Ref ArtifactOutputBucket
-                KeyName: !Sub 'jar/${ImageTag}.jar'
+                KeyName: !Sub 'jar/${SubModuleSha1}.jar'
               InputArtifacts:
                 - Name: !Sub '${ProjectName}-zip'
     Type: AWS::CodePipeline::Pipeline

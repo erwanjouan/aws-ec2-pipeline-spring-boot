@@ -12,8 +12,8 @@ phases:
   pre_build:
     commands:
       - git submodule update --init --recursive
-      - echo IMAGE_TAG \$IMAGE_TAG
-      - cd \$MAVEN_PROJECT_NAME && git fetch && git checkout \$IMAGE_TAG
+      - echo SUB_MODULE_SHA1 \$SUB_MODULE_SHA1
+      - cd \$MAVEN_PROJECT_NAME && git fetch && git checkout \$SUB_MODULE_SHA1
   build:
     commands:
       - echo Build started on \$(date)
