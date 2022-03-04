@@ -212,7 +212,7 @@ Resources:
       Port: !Ref ApplicationPort
       Protocol: HTTP
       VpcId: !Ref VPC
-      TargetType: ip # for awsvpc mode
+      TargetType: instance # for EC2
       TargetGroupAttributes:
         - Key: deregistration_delay.timeout_seconds
           Value: 5
