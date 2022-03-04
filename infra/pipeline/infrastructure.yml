@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: A Java SpringBoot application deployed with ECS with CodeBuild/Deploy/Pipeline
+Description: A Java SpringBoot application deployed with EC2 with CodeBuild/Deploy/Pipeline
 Parameters:
   ProjectName:
     Type: String
@@ -12,10 +12,25 @@ Parameters:
     Default: 8080
   DesiredCount:
     Type: String
-    Default: 1
+    Default: 2
   AlbPort:
     Type: String
     Default: 80
+  ASGMinSize:
+    Type: Number
+    Default: 2
+  ASGMaxSize:
+    Type: Number
+    Default: 4
+  AmiId:
+    Type: String
+    Default: ami-0d1bf5b68307103c2
+  KeyName:
+    Type: String
+    Default: eksworkshop
+  InstanceType:
+    Type: String
+    Default: t2.small
 
 Resources:
 
@@ -205,106 +220,182 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
 
   ##########################
-  # ECS
+  # EC2
   ##########################
 
-  ECSTaskExecutionRole:
-    Type: AWS::IAM::Role
+  AutoScalingGroup:
     Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: [ ecs-tasks.amazonaws.com ]
-            Action: [ 'sts:AssumeRole' ]
-      Path: /
-      Policies:
-        - PolicyName: AmazonECSTaskExecutionRolePolicy
-          PolicyDocument:
-            Statement:
-              - Effect: Allow
-                Action:
-                  # Allow the ECS Tasks to download images from ECR
-                  - 'ecr:GetAuthorizationToken'
-                  - 'ecr:BatchCheckLayerAvailability'
-                  - 'ecr:GetDownloadUrlForLayer'
-                  - 'ecr:BatchGetImage'
+      HealthCheckType: ELB
+      HealthCheckGracePeriod: 300
+      MinSize:
+        Ref: ASGMinSize
+      MaxSize:
+        Ref: ASGMaxSize
+      LaunchConfigurationName:
+        Ref: SpringBootLaunchConfig
+      #VPCZoneIdentifier: [!Ref PrivateSubnet1, !Ref PrivateSubnet2]
+      VPCZoneIdentifier: [ !Ref PublicSubnet1, !Ref PublicSubnet2 ] # Should be public for public IP address
+      TargetGroupARNs:
+        - Ref: ALBTargetGroup
+      Tags:
+        - Key: ProjectName
+          Value: !Ref ProjectName
+          PropagateAtLaunch: true
+        - Key: MavenProjectName
+          Value: !Ref MavenProjectName
+          PropagateAtLaunch: true
+    Type: AWS::AutoScaling::AutoScalingGroup
 
-                  # Allow the ECS tasks to upload logs to CloudWatch
-                  - 'logs:CreateLogStream'
-                  - 'logs:PutLogEvents'
-                Resource: '*'
-
-  EcsFargateSecurityGroup:
+  SpringBootLaunchConfig:
     Properties:
-      GroupDescription: allow access to ECS from ALB
+      AssociatePublicIpAddress: true
+      ImageId: !Ref AmiId
+      InstanceType: !Ref InstanceType
+      KeyName:
+        Ref: KeyName
+      SecurityGroups:
+        - Ref: WebappSecurityGroup
+      IamInstanceProfile:
+        Ref: WebappInstanceProfile
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash -xe
+
+          ## Code Deploy Agent Bootstrap Script##
+
+          exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+          AUTOUPDATE=false
+
+          function installdep(){
+
+          if [ ${PLAT} = "ubuntu" ]; then
+
+            apt-get -y update
+            # Satisfying even ubuntu older versions.
+            apt-get -y install jq awscli ruby2.0 || apt-get -y install jq awscli ruby
+
+          elif [ ${PLAT} = "amz" ]; then
+            yum -y update
+            yum install -y aws-cli ruby jq
+
+          fi
+
+          }
+
+          function platformize(){
+
+          #Linux OS detection#
+           if hash lsb_release; then
+             echo "Ubuntu server OS detected"
+             export PLAT="ubuntu"
+
+
+          elif hash yum; then
+            echo "Amazon Linux detected"
+            export PLAT="amz"
+
+           else
+             echo "Unsupported release"
+             exit 1
+
+           fi
+          }
+
+
+          function execute(){
+
+          if [ ${PLAT} = "ubuntu" ]; then
+
+            cd /tmp/
+            wget https://aws-codedeploy-${REGION}.s3.amazonaws.com/latest/install
+            chmod +x ./install
+
+            if ./install auto; then
+              echo "Instalation completed"
+                if ! ${AUTOUPDATE}; then
+                      echo "Disabling Auto Update"
+                      sed -i '/@reboot/d' /etc/cron.d/codedeploy-agent-update
+                      chattr +i /etc/cron.d/codedeploy-agent-update
+                      rm -f /tmp/install
+                fi
+              exit 0
+            else
+              echo "Instalation script failed, please investigate"
+              rm -f /tmp/install
+              exit 1
+            fi
+
+          elif [ ${PLAT} = "amz" ]; then
+
+            cd /tmp/
+            wget https://aws-codedeploy-${REGION}.s3.amazonaws.com/latest/install
+            chmod +x ./install
+
+              if ./install auto; then
+                echo "Instalation completed"
+                  if ! ${AUTOUPDATE}; then
+                      echo "Disabling auto update"
+                      sed -i '/@reboot/d' /etc/cron.d/codedeploy-agent-update
+                      chattr +i /etc/cron.d/codedeploy-agent-update
+                      rm -f /tmp/install
+                  fi
+                exit 0
+              else
+                echo "Instalation script failed, please investigate"
+                rm -f /tmp/install
+                exit 1
+              fi
+
+          else
+            echo "Unsupported platform ''${PLAT}''"
+          fi
+
+          }
+
+          platformize
+          installdep
+          REGION=$(curl -s 169.254.169.254/latest/dynamic/instance-identity/document | jq -r ".region")
+          execute
+    Type: AWS::AutoScaling::LaunchConfiguration
+
+  WebappSecurityGroup:
+    Properties:
+      GroupDescription: allow access to Webapp from ALB
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: !Ref ApplicationPort
-          ToPort: !Ref ApplicationPort
-          SourceSecurityGroupId: !Ref ALBSecurityGroup
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0 # bad
+          #SourceSecurityGroupId:
+          #  Ref: ALBSecurityGroup
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
     Type: AWS::EC2::SecurityGroup
 
-  EcsFargateLogGroup:
-    Type: AWS::Logs::LogGroup
+  Ec2CodeDeployRole:
     Properties:
-      LogGroupName: !Sub /ecs/fargate/${MavenProjectName}
+      Description: Provides full access to CodeDeploy resources.
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: ec2.amazonaws.com
+          Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSCodeDeployFullAccess
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+      Path: /
+    Type: "AWS::IAM::Role"
 
-  EcsFargateTaskDefinition:
-    Description: ECS Task Definition
+  WebappInstanceProfile:
     Properties:
-      NetworkMode: awsvpc
-      Family: !Ref MavenProjectName
-      Cpu: 512
-      Memory: 1024
-      ExecutionRoleArn: !Ref ECSTaskExecutionRole # Fargate requires task definition to have execution role ARN to support ECR images
-      TaskRoleArn: !Ref ECSTaskExecutionRole
-      RequiresCompatibilities:
-        - FARGATE
-      ContainerDefinitions:
-        - Name: !Ref MavenProjectName
-          Image: !Sub '467420073914.dkr.ecr.eu-west-1.amazonaws.com/${MavenProjectName}:${SubModuleSha1}'
-          Environment:
-            - Name: SERVER_PORT
-              Value: !Ref ApplicationPort
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-region: !Ref AWS::Region
-              awslogs-group: !Ref EcsFargateLogGroup
-              awslogs-stream-prefix: oam-ecs
-          PortMappings:
-            - ContainerPort: !Ref 'ApplicationPort'
-    Type: AWS::ECS::TaskDefinition
-
-  EcsFargateCluster:
-    Description: ECS Cluster
-    Properties:
-      ClusterName: !Ref 'MavenProjectName'
-    Type: AWS::ECS::Cluster
-
-  EcsFargateService:
-    Description: ECS Service
-    Properties:
-      ServiceName: !Ref 'MavenProjectName'
-      Cluster: !Ref 'EcsFargateCluster'
-      LaunchType: FARGATE
-      DesiredCount: !Ref DesiredCount
-      LoadBalancers:
-        - TargetGroupArn: !Ref ALBTargetGroup # loadBalancerName and targetGroupArn cannot both be specified. You must specify either a loadBalancerName or a targetGroupArn.
-          #LoadBalancerName: !Ref 'LoadBalancerName'
-          ContainerPort: !Ref 'ApplicationPort'
-          ContainerName: !Ref 'MavenProjectName'
-      NetworkConfiguration:
-        AwsvpcConfiguration:
-          #AssignPublicIp: ENABLED # unless a NAT / Route needs to be opened to ECR
-          SecurityGroups:
-            - !Ref 'EcsFargateSecurityGroup'
-          Subnets: [ !Ref PrivateSubnet1, !Ref PrivateSubnet2 ]
-      TaskDefinition: !Ref 'EcsFargateTaskDefinition'
-    DependsOn: ALBListener # unless "The target group does not have an associated load balancer"
-    Type: AWS::ECS::Service
+      Roles:
+        - !Ref Ec2CodeDeployRole
+    Type: AWS::IAM::InstanceProfile
 
   ###############
   # VPC Endpoints
@@ -374,11 +465,3 @@ Outputs:
     Value: !GetAtt 'ALBTargetGroup2.TargetGroupName'
     Export:
       Name: !Sub "${AWS::StackName}-TargetGroup2Name"
-  EcsFargateService:
-    Value: !GetAtt 'EcsFargateService.Name'
-    Export:
-      Name: !Sub "${AWS::StackName}-EcsFargateService"
-  EcsFargateCluster:
-    Value: !Ref EcsFargateCluster
-    Export:
-      Name: !Sub "${AWS::StackName}-EcsFargateCluster"
