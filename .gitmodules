@@ -1,0 +1,3 @@
+[submodule "basic-web-spring-boot"]
+	path = basic-web-spring-boot
+	url = https://github.com/erwanjouan/basic-web-spring-boot

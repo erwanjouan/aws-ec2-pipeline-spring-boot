@@ -1,0 +1,26 @@
+version: 0.2
+env:
+  git-credential-helper: yes
+phases:
+  install:
+    runtime-versions:
+      java: corretto11
+    commands:
+      - java -version
+  build:
+    commands:
+      - echo Build started on Ven  4 mar 2022 18:28:35 CET
+      - mvn clean install
+  post_build:
+    commands:
+      - cp $MAVEN_PROJECT_NAME/target/*.jar app.jar
+      - cp infra/pipeline/infrastructure.yml .
+      - echo Build completed on Ven  4 mar 2022 18:28:35 CET
+artifacts:
+  files:
+    - app.jar
+    - infrastructure.yml
+  discard-paths: yes
+cache:
+  paths:
+    - '/root/.m2/**/*'
