@@ -20,18 +20,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b752612b-8cba-4347-95a9-5f0dc311a952" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.gitmodules" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Makefile" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/basic-web-spring-boot" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/infra/pipeline/cicd.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/infra/pipeline/infrastructure.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/infra/pipeline/init.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/infra/utils/cloudformation_events.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/infra/utils/control_page.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/infra/utils/ec2_springboot_buildspec.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/infra/utils/get_mvn_project_version.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/infra/utils/git_init.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/buildspec.yml" beforeDir="false" afterPath="$PROJECT_DIR$/buildspec.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/infra/utils/ec2_springboot_buildspec.sh" beforeDir="false" afterPath="$PROJECT_DIR$/infra/utils/ec2_springboot_buildspec.sh" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

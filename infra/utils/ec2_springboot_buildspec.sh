@@ -9,15 +9,21 @@ phases:
       java: corretto11
     commands:
       - java -version
+  pre_build:
+    commands:
+      - git submodule update --init --recursive
+      - echo IMAGE_TAG \$IMAGE_TAG
+      - cd \$MAVEN_PROJECT_NAME && git fetch && git checkout \$IMAGE_TAG
   build:
     commands:
-      - echo Build started on `date`
+      - echo Build started on \$(date)
       - mvn clean install
   post_build:
     commands:
-      - cp \$MAVEN_PROJECT_NAME/target/*.jar app.jar
+      - cp target/*.jar app.jar
+      - cd ..
       - cp infra/pipeline/infrastructure.yml .
-      - echo Build completed on `date`
+      - echo Build completed on \$(date)
 artifacts:
   files:
     - app.jar
