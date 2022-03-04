@@ -1,4 +1,3 @@
-ECR_ROOT_URL:=467420073914.dkr.ecr.eu-west-1.amazonaws.com
 PROJECT_NAME:=aws-ec2-pipeline-spring-boot
 MAVEN_PROJECT_NAME:=basic-web-spring-boot
 
@@ -34,12 +33,10 @@ deploy:
 	aws codepipeline start-pipeline-execution --name "$(PROJECT_NAME)-$${MAVEN_PROJECT_VERSION}"
 
 destroy:
-	@MAVEN_PROJECT_NAME=$$(./infra/utils/get_mvn_project_name.sh) && \
 	INIT_BUCKET_NAME=$(PROJECT_NAME)-init && \
 	aws s3 rm s3://$(PROJECT_NAME)-output --recursive || true && \
 	aws s3 rm s3://$${INIT_BUCKET_NAME} --recursive || true && \
 	aws s3 rb s3://$${INIT_BUCKET_NAME}  || true && \
-	aws ecr delete-repository --force --repository-name $${MAVEN_PROJECT_NAME} && \
 	aws cloudformation delete-stack --stack-name $(PROJECT_NAME)-cicd || true && \
 	aws cloudformation delete-stack --stack-name $(PROJECT_NAME)-infrastructure || true && \
 	aws cloudformation delete-stack --stack-name $(PROJECT_NAME)-init || true && \
