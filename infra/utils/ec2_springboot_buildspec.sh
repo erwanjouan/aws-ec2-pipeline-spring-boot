@@ -20,7 +20,7 @@ phases:
       - mvn clean install
   post_build:
     commands:
-      - cp target/*.jar app.jar
+      - cp target/*.jar ../app.jar
       - cd ..
       - cp infra/pipeline/infrastructure.yml .
       - echo Build completed on \$(date)

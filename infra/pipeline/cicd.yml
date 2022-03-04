@@ -196,19 +196,6 @@ Resources:
                 - Name: !Ref ArtifactOutputBucket
               OutputArtifacts:
                 - Name: !Sub '${ProjectName}-zip'
-        - Name: DeployStage
-          Actions:
-            - Name: S3
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Provider: S3
-                Version: 1
-              Configuration:
-                BucketName: !Ref ArtifactOutputBucket
-                KeyName: !Sub 'jar/${SubModuleSha1}.jar'
-              InputArtifacts:
-                - Name: !Sub '${ProjectName}-zip'
     Type: AWS::CodePipeline::Pipeline
 
 

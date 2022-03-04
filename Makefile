@@ -19,9 +19,7 @@ init:
 	./infra/utils/git_init.sh $(PROJECT_NAME)
 
 deploy:
-	MAVEN_PROJECT_NAME=$$(./infra/utils/get_mvn_project_name.sh) && \
-    MAVEN_PROJECT_VERSION=$$(./infra/utils/get_mvn_project_version.sh) && \
-	aws ecr create-repository --repository-name $${MAVEN_PROJECT_NAME} || true && \
+	MAVEN_PROJECT_VERSION=$$(./infra/utils/get_mvn_project_version.sh $(MAVEN_PROJECT_NAME)) && \
  	SUB_MODULE_SHA1=$$(git submodule status $(MAVEN_PROJECT_NAME) | grep -o "[0-9a-f]\{40\}") && \
 	aws cloudformation deploy \
 		--capabilities CAPABILITY_NAMED_IAM \
@@ -30,7 +28,7 @@ deploy:
 		--parameter-overrides \
 			ProjectName=$(PROJECT_NAME) \
 			ProjectVersion=$${MAVEN_PROJECT_VERSION} \
-			MavenProjectName=$${MAVEN_PROJECT_NAME} \
+			MavenProjectName=$(MAVEN_PROJECT_NAME) \
 			InfrastructureStackName=$(PROJECT_NAME)-infrastructure \
 			SubModuleSha1=$${SUB_MODULE_SHA1} && \
 	aws codepipeline start-pipeline-execution --name "$(PROJECT_NAME)-$${MAVEN_PROJECT_VERSION}"
