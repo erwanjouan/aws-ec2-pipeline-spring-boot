@@ -16,7 +16,7 @@ Parameters:
     Type: String
   DeploymentConfigName:
     Type: String
-    Default: CodeDeployDefault.AllAtOnce
+    Default: CodeDeployDefault.HalfAtATime
 
 Resources:
 
@@ -96,12 +96,6 @@ Resources:
           - Name: MAVEN_PROJECT_NAME
             Type: PLAINTEXT
             Value: !Ref MavenProjectName
-          - Name: PROJECT_VERSION
-            Type: PLAINTEXT
-            Value: !Ref ProjectVersion
-          - Name: GIT_COMMIT_ID
-            Type: PLAINTEXT
-            Value: '#{GitVariables.CommitId}'
           - Name: SUB_MODULE_SHA1
             Type: PLAINTEXT
             Value: !Ref SubModuleSha1

@@ -4,7 +4,6 @@ MAVEN_PROJECT_NAME:=basic-web-spring-boot
 init:
 	INIT_BUCKET_NAME=$(PROJECT_NAME)-init && \
 	mvn clean -f $(MAVEN_PROJECT_NAME)/pom.xml && \
-	./infra/utils/ec2_springboot_buildspec.sh && \
 	zip -r $(PROJECT_NAME).zip * && \
 	aws s3 mb s3://$${INIT_BUCKET_NAME} &&\
 	aws s3 cp $(PROJECT_NAME).zip s3://$${INIT_BUCKET_NAME}/init/ && \
