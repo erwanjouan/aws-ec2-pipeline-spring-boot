@@ -76,6 +76,7 @@ Resources:
       ServiceRole: !Ref CodeBuildServiceRole
       Source:
         Type: CODEPIPELINE
+        BuildSpec: infra/codebuild/buildspec.yml
       SourceVersion: main
       Artifacts:
         Type: CODEPIPELINE
@@ -141,6 +142,13 @@ Resources:
       DeploymentGroupName: !Ref ProjectName
       DeploymentStyle:
         DeploymentType: IN_PLACE
+        DeploymentOption: WITHOUT_TRAFFIC_CONTROL
+      Ec2TagSet:
+        Ec2TagSetList:
+          - Ec2TagGroup:
+            - Type: KEY_AND_VALUE
+              Key: MavenProjectName
+              Value: basic-web-spring-boot
     Type: AWS::CodeDeploy::DeploymentGroup
 
   ###############
