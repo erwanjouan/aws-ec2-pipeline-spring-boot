@@ -29,7 +29,10 @@ deploy:
 			ProjectVersion=$${MAVEN_PROJECT_VERSION} \
 			MavenProjectName=$(MAVEN_PROJECT_NAME) \
 			InfrastructureStackName=$(PROJECT_NAME)-infrastructure \
-			SubModuleSha1=$${SUB_MODULE_SHA1} && \
+			SubModuleSha1=$${SUB_MODULE_SHA1}
+
+trigger:
+	MAVEN_PROJECT_VERSION=$$(./infra/utils/get_mvn_project_version.sh $(MAVEN_PROJECT_NAME)) && \
 	aws codepipeline start-pipeline-execution --name "$(PROJECT_NAME)-$${MAVEN_PROJECT_VERSION}"
 
 destroy:
